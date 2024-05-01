@@ -1,0 +1,21 @@
+{
+    "$schema": "https://raw.githubusercontent.com/DanielGavin/ols/master/misc/ols.schema.json",
+    "collections": [
+        {
+            "name": "core",
+            "path": "/Users/danluo/References/container6/odin/compiler/core/"
+        },
+        {
+            "name": "vendor",
+            "path": "/Users/danluo/References/container6/odin/compiler/vendor/"
+        },
+        {
+            "name": "shared",
+            "path": "/Users/danluo/References/container6/odin/compiler/shared/"
+        }
+    ],
+    "enable_document_symbols": true,
+    "enable_semantic_tokens": true,
+    "enable_hover": true,
+    "enable_snippets": true
+}

@@ -1,0 +1,8 @@
+1xx -- Double pawn push
+2xx -- En passant
+3xx -- Castling
+
+board_state castling rights
+[0] -> queenside castling
+[1] -> kingside castling
+
