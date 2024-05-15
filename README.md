@@ -4,6 +4,9 @@ Chess implementation in Odin and Raylib
 
 Odin is a programming language created to be a modern alternative to C; Raylib is a rendering library that is a step above Graphics APIs such as OpenGL, while still being much more barebones and low-level than a game engine.
 
+Learn more about Odin [here](https://odin-lang.org/). \
+Learn more about Raylib [here](https://www.raylib.com/).
+
 To run the program:
 
 ```bash
