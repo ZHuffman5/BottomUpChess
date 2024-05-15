@@ -3,12 +3,14 @@ package core
 import "core:fmt"
 import "core:math"
 
+// These are for printing text in color
 red    :: "\x1B[38;2;247;118;142m"
 blue   :: "\x1B[38;2;125;207;255m"
 green  :: "\x1B[38;2;158;206;106m"
 yellow :: "\x1B[38;2;224;175;104m"
 reset  :: "\x1B[0m"
 
+// Board configuration
 board := [8][8]int{
     {  4,  3,  2,  5,  6,  2,  3,  4 },
     {  1,  1,  1,  1,  1,  1,  1,  1 },
@@ -20,11 +22,13 @@ board := [8][8]int{
     { -4, -3, -2, -5, -6, -2, -3, -4 },
 }
 
+// Get the piece in the board 2d array at a certain index
 get_piece :: proc(idx: u16, b: [8][8]int) -> int
 {
     return b[row(idx)][col(idx)]
 }
 
+// Enum of board square names
 board_squares :: enum u16 {
     a8, b8, c8, d8, e8, f8, g8, h8,
     a7, b7, c7, d7, e7, f7, g7, h7,
@@ -36,12 +40,14 @@ board_squares :: enum u16 {
     a1, b1, c1, d1, e1, f1, g1, h1,
 }
 
+// Enum of board sides
 board_sides :: enum
 {
     black =  1,
     white = -1,
 }
 
+// Move struct containing all necessary information
 move :: struct
 {
     origin: u16,
@@ -52,11 +58,12 @@ move :: struct
     piece_type: int,
 
     en_passant: bool,
-    /*
     castle: bool,
-    */
+    
+    promotion: bool,
 }
 
+// Global board state
 board_state :: struct
 {
     w_castle_rights: [2]bool,
@@ -104,16 +111,19 @@ diff :: proc(s1: u16, s2: u16) -> u16
     }
 }
 
+// The column number of a certain square (0-7)
 col :: proc(s: u16) -> u16
 {
     return s % 8
 }
 
+// The row number of a certain square (0-7)
 row :: proc(s: u16) -> u16
 {
     return s / 8
 }
 
+// Whether the bit at a certain square is 1
 bit_val :: proc(bitboard: u64, square: board_squares) -> u64
 {
     return bitboard & (u64(1) << u16(square))
@@ -122,6 +132,7 @@ bit_val :: proc(bitboard: u64, square: board_squares) -> u64
 files := [8]int{ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', }
 ranks := [8]int{  1,   2,   3,   4,   5,   6,   7,   8,  }
 
+// Generate all pseudolegal pawn moves
 pawn_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
 {
     targets: [dynamic]u16
@@ -132,7 +143,29 @@ pawn_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
         case .black:
         {
             assert(row(square) != 7, "Illegal position: black pawn at 1st rank")
+            
+            // Generate pawn promotion moves
+            if row(square) == 6
+            {
+                if get_piece(square + 8, b) == 0
+                {
+                    append(&targets, square + 8 + 400)
+                }
 
+                if col(square) != 0 &&
+                    get_piece(square + 7, b) < 0
+                {
+                    append(&targets, square + 7 + 400)
+                }
+                
+                if col(square) != 7 &&
+                    get_piece(square + 9, b) < 0
+                {
+                    append(&targets, square + 9 + 400)
+                }
+            }
+
+            // Pawn captures
             if col(square) != 0 &&
                 get_piece(square + 7, b) < 0
             {
@@ -145,11 +178,13 @@ pawn_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
                 append(&targets, square + 9)
             }
             
+            // Pawn move forward
             if get_piece(square + 8, b) == 0
             {
                 append(&targets, square + 8)
             }
 
+            // En passant
             if row(square) == 4 &&
                 last_move.double_push == true
             {
@@ -164,6 +199,7 @@ pawn_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
                 }
             }
             
+            // Pawn double push
             if row(square) == 1
             {
                 if get_piece(square + 8, b) == 0 &&
@@ -178,6 +214,28 @@ pawn_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
         {
             assert(row(square) != 0, "Illegal position: white pawn at 7th rank")
 
+            // Pawn promotions
+            if row(square) == 1
+            {
+                if get_piece(square - 8, b) == 0
+                {
+                    append(&targets, square - 8 + 400)
+                }
+
+                if col(square) != 7 &&
+                    get_piece(square - 7, b) > 0
+                {
+                    append(&targets, square - 7 + 400)
+                }
+                
+                if col(square) != 0 &&
+                    get_piece(square - 9, b) > 0
+                {
+                    append(&targets, square - 9 + 400)
+                }
+            }
+
+            // Pawn captures
             if col(square) != 0 &&
                 get_piece(square - 9, b) > 0
             {
@@ -190,11 +248,13 @@ pawn_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
                 append(&targets, square - 7)
             }
             
+            // Pawn forward
             if get_piece(square - 8, b) == 0
             {
                 append(&targets, square - 8)
             }
 
+            // Pawn en passant
             if row(square) == 3 &&
                 last_move.double_push == true
             {
@@ -209,6 +269,7 @@ pawn_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
                 }
             }
             
+            // Pawn double push
             if row(square) == 6
             {
                 if get_piece(square - 8, b) == 0 &&
@@ -223,6 +284,8 @@ pawn_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
     return targets
 }
 
+// Returns all the possible squares that a pawn attacks (diagonal)
+// This is used for evaluating whether the king is under attack by a pawn
 pawn_attacks :: proc(side: board_sides, square: u16) -> [dynamic]u16
 {
     targets: [dynamic]u16
@@ -264,6 +327,7 @@ pawn_attacks :: proc(side: board_sides, square: u16) -> [dynamic]u16
     return targets
 }
 
+// Generate all pseudolegal knight moves
 knight_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
 {
     targets: [dynamic]u16
@@ -348,6 +412,7 @@ knight_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u
     return targets
 }
 
+// Generate all pseudolegal bishop moves
 bishop_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
 {
     targets: [dynamic]u16
@@ -463,6 +528,7 @@ bishop_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u
     return targets
 }
 
+// Generate all pseudolegal rook moves
 rook_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
 {
     targets: [dynamic]u16
@@ -574,6 +640,8 @@ rook_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
     return targets
 }
 
+// Generate all legal queen moves
+// This works by generating all pseudolegal rook and bishop and combining them
 queen_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
 {
     targets: [dynamic]u16
@@ -588,6 +656,7 @@ queen_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u1
     return targets
 }
 
+// Generate all legal king moves (this includes castling)
 king_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
 {
     targets: [dynamic]u16
@@ -657,7 +726,6 @@ king_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
         }
     }
     
-    /*
     switch side
     {
         case .black: {
@@ -725,11 +793,87 @@ king_moves :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
             }
         }
     }
-    */
     
     return targets
 }
 
+// Generate all legal king moves that excludes castling
+// (this is used for evaluation of whether a move is legal)
+king_attacks :: proc(b: [8][8]int, side: board_sides, square: u16) -> [dynamic]u16
+{
+    targets: [dynamic]u16
+    last_move := state.moves[len(state.moves) - 1]
+    
+    if row(square) != 0
+    {
+        if get_piece(square - 8, b) * int(side) <= 0
+        {
+            append(&targets, square - 8)
+        }
+        
+        if col(square) != 0
+        {
+            if get_piece(square - 9, b) * int(side) <= 0
+            {
+                append(&targets, square - 9)
+            }
+        }
+        
+        if col(square) != 7
+        {
+            if get_piece(square - 7, b) * int(side) <= 0
+            {
+                append(&targets, square - 7)
+            }
+        }
+    }
+
+    if col(square) != 0
+    {
+        if get_piece(square - 1, b) * int(side) <= 0
+        {
+            append(&targets, square - 1)
+        }
+    }
+
+    if col(square) != 7
+    {
+        if get_piece(square + 1, b) * int(side) <= 0
+        {
+            append(&targets, square + 1)
+        }
+    }
+
+    if row(square) != 7
+    {
+        if get_piece(square + 8, b) * int(side) <= 0
+        {
+            append(&targets, square + 8)
+        }
+        
+        if col(square) != 0
+        {
+            if get_piece(square + 7, b) * int(side) <= 0
+            {
+                append(&targets, square + 7)
+            }
+        }
+
+        if col(square) != 7
+        {
+            if get_piece(square + 9, b) * int(side) <= 0
+            {
+                append(&targets, square + 9)
+            }
+        }
+    }
+    
+    return targets
+}
+
+// Generate all squares attacked by a particular side
+// This works by looping over all pieces of a single color and calling their
+// move generation functions
 sum_attack :: proc(side: board_sides, p_board: [8][8]int) -> u64
 {
     targets: [dynamic]u16
@@ -763,7 +907,7 @@ sum_attack :: proc(side: board_sides, p_board: [8][8]int) -> u64
                         append(&targets, ..queen_moves(p_board, opposing_side, u16(i * 8 + j))[:])
                     }
                     case 6: {
-                        append(&targets, ..king_moves(p_board, opposing_side, u16(i * 8 + j))[:])
+                        append(&targets, ..king_attacks(p_board, opposing_side, u16(i * 8 + j))[:])
                     }
 
                     case: {}
@@ -782,6 +926,8 @@ sum_attack :: proc(side: board_sides, p_board: [8][8]int) -> u64
     return bitboard
 }
 
+// Test a position to see if it is legal
+// (If the king can be captured then it is illegal)
 test_position :: proc(side: board_sides, p_board: [8][8]int) -> bool
 {
     attacks := sum_attack(side, p_board)
@@ -811,6 +957,7 @@ test_position :: proc(side: board_sides, p_board: [8][8]int) -> bool
     }
 }
 
+// Generate move structs from the target square indices
 square_to_moves :: proc(
     targets:   [dynamic]u16,
     piece_val: int,
@@ -826,9 +973,9 @@ square_to_moves :: proc(
             target = target % 100,
             piece_type = piece_val,
 
-            /*
+            promotion = true if (target / 100 == 4) else false,
+
             castle = true if (target / 100 == 3) else false,
-            */
 
             en_passant = true if (target / 100 == 2) else false,
             double_push = true if (target / 100 == 1) else false,
@@ -838,6 +985,7 @@ square_to_moves :: proc(
     return moves
 }
 
+// Generate pseudolegal moves from the piece on a given square index
 gen_pseudo_legal :: proc(square: u16, side: board_sides) -> [dynamic]move
 {
     moves: [dynamic]move
@@ -879,6 +1027,13 @@ gen_pseudo_legal :: proc(square: u16, side: board_sides) -> [dynamic]move
     return moves
 }
 
+// Duplicate the current board, make a move, and test if the resulting possible is legal
+// (This involves the test_position function)
+// If a move is made and the king can be captured afterwards by the opponent, then the move was illegal
+// and we return false
+// 
+// NOTE: we do not care about what piece a pawn promotes to because the only way it can affect an attack
+// on the king is by blockig it, and no matter what the pawn promotes to, it will have the same result
 test_move :: proc(m: move) -> bool
 {
     temp_board := board
@@ -886,15 +1041,45 @@ test_move :: proc(m: move) -> bool
     temp_board[row(m.target)][col(m.target)] = temp_board[row(m.origin)][col(m.origin)]
     temp_board[row(m.origin)][col(m.origin)] = 0
 
+    // Make an en passant move
     if m.en_passant == true
     {
         last_move := state.moves[len(state.moves) - 1]
         temp_board[row(last_move.target)][col(last_move.target)] = 0
     }
     
+    // Make a castling move
+    if m.castle == true
+    {
+        if m.piece_type > 0
+        {
+            if int(m.origin) - int(m.target) == 2
+            {
+                temp_board[0][0] = 0
+                temp_board[0][3] = 4
+            } else if int(m.origin) - int(m.target) == -2
+            {
+                temp_board[0][7] = 0
+                temp_board[0][5] = 4
+            }
+        } else if m.piece_type < 0
+        {
+            if int(m.origin) - int(m.target) == 2
+            {
+                temp_board[7][0] = 0
+                temp_board[7][3] = -4
+            } else if int(m.origin) - int(m.target) == -2
+            {
+                temp_board[7][7] = 0
+                temp_board[7][5] = -4
+            }
+        }
+    }
+    
     return test_position(board_sides(m.piece_type / math.abs(m.piece_type)), temp_board)
 }
 
+// Loop through moves and discard illegal ones
 gen_moves :: proc(square: u16) -> [dynamic]move
 {
     moves: [dynamic]move
@@ -920,42 +1105,46 @@ gen_moves :: proc(square: u16) -> [dynamic]move
     return moves
 }
 
+// Make a move on the board (this occurs after we have checked that all moves all legal)
 make_move :: proc(m: move)
 {
+    // If a move is en passant
     if m.en_passant == true
     {
         last_move := state.moves[len(state.moves) - 1]
         board[row(last_move.target)][col(last_move.target)] = 0
     }
     
-    /*
+    // If a move is castling
     if m.castle == true
     {
-        if m.piece_type < 0
+        if m.piece_type > 0
         {
-            if int(m.origin) - int(m.target) == -2
+            if int(m.origin) - int(m.target) == 2
             {
                 board[0][0] = 0
-                board[0][3] = -4
-            } else if m.origin - m.target == 2
+                board[0][3] = 4
+            } else if int(m.origin) - int(m.target) == -2
             {
                 board[0][7] = 0
-                board[0][5] = -4
+                board[0][5] = 4
             }
-        } else if m.piece_type > 0
+        } else if m.piece_type < 0
         {
-            if int(m.origin) - int(m.target) == -2
+            if int(m.origin) - int(m.target) == 2
             {
                 board[7][0] = 0
-                board[7][3] = 4
-            } else if m.origin - m.target == 2
+                board[7][3] = -4
+            } else if int(m.origin) - int(m.target) == -2
             {
                 board[7][7] = 0
-                board[7][5] = 4
+                board[7][5] = -4
             }
         }
     }
     
+    // If the king or rook moves, or if the rook is captured,
+    // we remove castling rights
     switch m.piece_type
     {
         case 4: {
@@ -977,49 +1166,38 @@ make_move :: proc(m: move)
             }
         }
         case -6: {
-            state.b_castle_rights[0] = false
-            state.b_castle_rights[1] = false
-        }
-        case 6: {
             state.w_castle_rights[0] = false
             state.w_castle_rights[1] = false
+        }
+        case 6: {
+            state.b_castle_rights[0] = false
+            state.b_castle_rights[1] = false
         }
         case: {}
     }
 
     if state.b_castle_rights[0] == true &&
-        m.target == 0 
+        (m.target == 0 || m.target == 7)
     {
         state.w_castle_rights[0] = false
-    }
-
-    if state.b_castle_rights[1] == true &&
-        m.target == 7
-    {
-        state.w_castle_rights[1] = false
     }
     
     if state.w_castle_rights[0] == true &&
-        m.target == 56
+        (m.target == 56 || m.target == 63)
     {
         state.w_castle_rights[0] = false
     }
-
-    if state.w_castle_rights[1] == true &&
-        m.target == 63
-    {
-        state.w_castle_rights[1] = false
-    }
-    */
     
     board[row(m.target)][col(m.target)] = board[row(m.origin)][col(m.origin)]
     board[row(m.origin)][col(m.origin)] = 0
 
     append(&state.moves, m)
     
+    // After a move has been made, we flip the turn to the opponent
     state.turn = board_sides(int(state.turn) * -1)
 }
 
+// Print a bitboard (this is for debugging purposes)
 print_bitboard :: proc(bitboard: u64)
 {
     fmt.printf("{:s}{:s}{:s}{:s}{:s}",
@@ -1072,6 +1250,7 @@ print_bitboard :: proc(bitboard: u64)
     fmt.printf("Bitboard: {:s}0x{:16x}{:s}\n", yellow, bitboard, reset)
 }
 
+// Print the target squares on a board (debugging purposes)
 print_targets :: proc(targets: [dynamic]u16)
 {
     fmt.printf("{:s}{:s}{:s}{:s}{:s}",
@@ -1129,6 +1308,7 @@ print_targets :: proc(targets: [dynamic]u16)
     fmt.printf("\n")
 }
 
+// Prints the contents of a board (2d array)
 print_board :: proc(p_board: [8][8]int)
 {
     fmt.printf("{:s}{:s}{:s}{:s}{:s}",
@@ -1226,6 +1406,7 @@ print_board :: proc(p_board: [8][8]int)
     fmt.printf("\n")
 }
 
+// Testing
 main :: proc()
 {
     moves: [dynamic]move
