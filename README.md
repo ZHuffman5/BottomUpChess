@@ -17,6 +17,7 @@ odin run board/src -out:out/debug/board
 
 The chess board is represented by a 2D array of integers with each integer representing a piece. The sign of the number represents whether a piece is white or black, and 0 represents an empty square.
 
+| Value | Piece |
 | --- | ---------- |
 | `6` | Black King |
 | `5` | Black Queen |
