@@ -1,6 +1,7 @@
 1xx -- Double pawn push
 2xx -- En passant
 3xx -- Castling
+4xx -- Promotion
 
 board_state castling rights
 [0] -> queenside castling
