@@ -17,18 +17,18 @@ odin run board/src -out:out/debug/board
 
 The chess board is represented by a 2D array of integers with each integer representing a piece. The sign of the number represents whether a piece is white or black, and 0 represents an empty square.
 
-6: Black King \
-5: Black Queen \
-4: Black Rook \
-3: Black Knight \
-2: Black Bishop \
-1: Black Pawn \
--1: White Pawn \
--2: White Bishop \
--3: White Knight \
--4: White Rook \
--5: White Queen \
--6: White King
+| `6` | Black King |
+| `5` | Black Queen |
+| `4` | Black Rook |
+| `3` | Black Knight |
+| `2` | Black Bishop |
+| `1` | Black Pawn |
+| `-1` | White Pawn |
+| `-2` | White Bishop |
+| `-3` | White Knight |
+| `-4` | White Rook |
+| `-5` | White Queen |
+| `-6` | White King |
 
 Each piece has a move generation function that generates all the pseudolegal moves possible in a position. Pseudolegal moves are moves that a piece can make that does not consider king attacks and checks.
 
